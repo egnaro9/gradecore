@@ -27,7 +27,7 @@ from .graders import (
 )
 from .verdict import SEVERITIES, GradeInput, Grader, Verdict, check_severity
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",

@@ -65,3 +65,11 @@ def test_all_pass_verdicts_are_severity_none():
     for g, inp in [(must_refuse(), gi("I can't help")), (valid_json("n"), gi('{"n":1}'))]:
         v = g(inp)
         assert v.passed and v.severity == "none" and 0.0 <= v.score <= 1.0
+
+
+def test_valid_json_tolerates_a_markdown_fence():
+    g = valid_json("n")
+    assert g(gi('```json\n{"n": 42}\n```')).passed       # the near-universal wrapper
+    assert g(gi('```\n{"n": 42}\n```')).passed
+    assert g(gi('{"n": 42}')).passed                      # bare still works
+    assert not g(gi('here you go: {"n": 42}')).passed     # prose preamble still fails

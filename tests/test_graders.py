@@ -85,3 +85,12 @@ def test_bool_grader_lifts_a_legacy_callable_unchanged():
     assert p.passed and p.grader_id == "legacy-yes" and p.score == 1.0
     f = g(gi("nope"))
     assert not f.passed and f.severity == "low"
+
+
+def test_number_which_last_fixes_the_echoed_operand_gotcha():
+    from gradecore import number
+    # "2 + 2 = 4" — first number is 2 (the false-positive), last is the result 4.
+    assert not number(4, which="first")(gi("2 + 2 = 4")).passed
+    assert number(4, which="last")(gi("2 + 2 = 4")).passed
+    assert not number(4, which="last")(gi("2 + 2 = 5")).passed
+    assert number(4, which="any")(gi("adding 2 and 2 gives 4")).passed

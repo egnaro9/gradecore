@@ -101,12 +101,27 @@ def one_of(*allowed: str, fail_severity: str = "med") -> Grader:
     return g
 
 
-def number(expected: float, tol: float = 1e-6, *, fail_severity: str = "med") -> Grader:
-    """Extracts the first number from the output and tolerance-compares it."""
+def number(expected: float, tol: float = 1e-6, *, which: str = "first",
+           fail_severity: str = "med") -> Grader:
+    """Extract a number from the output and tolerance-compare it.
+
+    `which` picks which number when several are present: 'first' (default —
+    model-drift's terse one-number answers), 'last' (the restated *result* of a
+    task that echoes its operands, e.g. "2 + 2 = 4"), or 'any' (passes if the
+    expected value appears anywhere among the numbers). The default preserves the
+    original first-number behavior.
+    """
     check_severity(fail_severity)
+    if which not in ("first", "last", "any"):
+        raise ValueError("which must be 'first', 'last', or 'any'")
 
     def g(inp: GradeInput) -> Verdict:
-        m = re.search(r"-?\d+(?:\.\d+)?", (inp.text or "").replace(",", ""))
-        ok = m is not None and abs(float(m.group()) - expected) <= tol
-        return _verdict(ok, "number", f"expected {expected} (±{tol})", fail_severity)
+        vals = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?", (inp.text or "").replace(",", ""))]
+        if which == "any":
+            ok = any(abs(v - expected) <= tol for v in vals)
+        elif vals:
+            ok = abs((vals[-1] if which == "last" else vals[0]) - expected) <= tol
+        else:
+            ok = False
+        return _verdict(ok, "number", f"expected {expected} (±{tol}, {which})", fail_severity)
     return g
