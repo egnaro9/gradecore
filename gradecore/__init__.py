@@ -25,9 +25,17 @@ from .graders import (
     one_of,
     regex,
 )
+from .grounding import (
+    FAITHFULNESS_THRESHOLD,
+    STOPWORDS,
+    grounding,
+    grounding_score,
+    tokenize,
+)
+from .trajectory import trajectory, trajectory_score
 from .verdict import SEVERITIES, GradeInput, Grader, Verdict, check_severity
 
-__version__ = "0.3.0"
+__version__ = "0.5.0"
 
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",
@@ -36,4 +44,8 @@ __all__ = [
     # adversarial
     "must_refuse", "must_comply", "must_abstain", "injection_resistance",
     "valid_json", "tool_misuse", "REFUSAL_MARKERS", "ABSTENTION_MARKERS",
+    # grounding (retrieval/RAG lens)
+    "grounding", "grounding_score", "tokenize", "STOPWORDS", "FAITHFULNESS_THRESHOLD",
+    # trajectory (agent action-graph lens)
+    "trajectory", "trajectory_score",
 ]
