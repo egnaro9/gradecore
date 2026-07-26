@@ -32,10 +32,19 @@ from .grounding import (
     grounding_score,
     tokenize,
 )
+from .paired import (
+    DEFAULT_ALPHA,
+    PairedResult,
+    TaskDelta,
+    paired_compare,
+    paired_verdict,
+    sign_test_p,
+    tasks_needed,
+)
 from .trajectory import trajectory, trajectory_score
 from .verdict import SEVERITIES, GradeInput, Grader, Verdict, check_severity
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",
@@ -48,4 +57,7 @@ __all__ = [
     "grounding", "grounding_score", "tokenize", "STOPWORDS", "FAITHFULNESS_THRESHOLD",
     # trajectory (agent action-graph lens)
     "trajectory", "trajectory_score",
+    # paired comparison between two scored runs
+    "paired_compare", "paired_verdict", "sign_test_p", "tasks_needed",
+    "PairedResult", "TaskDelta", "DEFAULT_ALPHA",
 ]
