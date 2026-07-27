@@ -46,15 +46,53 @@ def bool_grader(fn: Callable[[str], bool], grader_id: str,
     return g
 
 
-def exact(expected: str, *, fail_severity: str = "med") -> Grader:
-    """Exact match, case- and whitespace-insensitive."""
+
+def last_line(text: str | None) -> str:
+    """The final non-empty line of a reply.
+
+    A task that says "reply with only the number" is asking about the ANSWER; a
+    model that shows its work and then states the answer got the answer right and
+    the format wrong. Grading the whole reply conflates those, and the conflation
+    is not random: turning thinking off makes a model narrate, so a config change
+    that alters VERBOSITY shows up as an accuracy difference. Measured: two of
+    eight wins in a thinking=high vs thinking=off comparison were the model being
+    marked wrong for answers it had stated correctly on the final line.
+
+    Format compliance is worth measuring — with tasks built for it, not as a
+    silent tax on every other task. Hence `scope`, explicit and opt-in.
+    """
+    for line in reversed((text or "").splitlines()):
+        if line.strip():
+            return line.strip()
+    return (text or "").strip()
+
+
+SCOPES = ("full", "last_line")
+
+
+def _scoped(text: str | None, scope: str) -> str:
+    if scope not in SCOPES:
+        raise ValueError(f"scope must be one of {SCOPES}, got {scope!r}")
+    return last_line(text) if scope == "last_line" else (text or "")
+
+
+def exact(expected: str, *, scope: str = "full", fail_severity: str = "med") -> Grader:
+    """Exact match, case- and whitespace-insensitive.
+
+    `scope="last_line"` matches against the final non-empty line instead of the
+    whole reply, so a worked solution ending in its answer still passes. Default
+    stays "full" — changing it silently would move every existing suite's scores.
+    """
     check_severity(fail_severity)
+    if scope not in SCOPES:
+        raise ValueError(f"scope must be one of {SCOPES}, got {scope!r}")
     e = expected.strip().lower()
 
     def g(inp: GradeInput) -> Verdict:
-        ok = (inp.text or "").strip().lower() == e
+        ok = _scoped(inp.text, scope).strip().lower() == e
         return _verdict(ok, "exact",
-                        f"expected {expected!r}, got {_preview(inp.text)!r}", fail_severity)
+                        f"expected {expected!r}, got {_preview(_scoped(inp.text, scope))!r}",
+                        fail_severity)
     return g
 
 
@@ -90,19 +128,24 @@ def exact_cs(expected: str, *, fail_severity: str = "med") -> Grader:
     return g
 
 
-def one_of(*allowed: str, fail_severity: str = "med") -> Grader:
-    """Any of several correct answers, exactly (trailing '.' tolerated)."""
+def one_of(*allowed: str, scope: str = "full", fail_severity: str = "med") -> Grader:
+    """Any of several correct answers, exactly (trailing '.' tolerated).
+
+    `scope="last_line"` grades the final non-empty line; see `last_line`.
+    """
     check_severity(fail_severity)
+    if scope not in SCOPES:
+        raise ValueError(f"scope must be one of {SCOPES}, got {scope!r}")
     opts = {a.strip().lower() for a in allowed}
 
     def g(inp: GradeInput) -> Verdict:
-        ok = (inp.text or "").strip().lower().rstrip(".") in opts
+        ok = _scoped(inp.text, scope).strip().lower().rstrip(".") in opts
         return _verdict(ok, "one_of", f"one of {list(allowed)}", fail_severity)
     return g
 
 
 def number(expected: float, tol: float = 1e-6, *, which: str = "first",
-           fail_severity: str = "med") -> Grader:
+           scope: str = "full", fail_severity: str = "med") -> Grader:
     """Extract a number from the output and tolerance-compare it.
 
     `which` picks which number when several are present: 'first' (default —
@@ -114,14 +157,23 @@ def number(expected: float, tol: float = 1e-6, *, which: str = "first",
     check_severity(fail_severity)
     if which not in ("first", "last", "any"):
         raise ValueError("which must be 'first', 'last', or 'any'")
+    if scope not in SCOPES:
+        raise ValueError(f"scope must be one of {SCOPES}, got {scope!r}")
 
     def g(inp: GradeInput) -> Verdict:
-        vals = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?", (inp.text or "").replace(",", ""))]
+        # scope narrows WHERE to look, `which` picks within it. scope="last_line"
+        # is the robust pairing: "...leaves 220 extra widgets" defeats which="last"
+        # over the whole reply, but a reply whose final line is the answer does not.
+        src = _scoped(inp.text, scope)
+        vals = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?", src.replace(",", ""))]
         if which == "any":
             ok = any(abs(v - expected) <= tol for v in vals)
         elif vals:
             ok = abs((vals[-1] if which == "last" else vals[0]) - expected) <= tol
         else:
             ok = False
-        return _verdict(ok, "number", f"expected {expected} (±{tol}, {which})", fail_severity)
+        return _verdict(ok, "number",
+                        f"expected {expected} (±{tol}, {which}"
+                        + (f", {scope}" if scope != "full" else "") + ")",
+                        fail_severity)
     return g
