@@ -44,7 +44,7 @@ from .paired import (
 from .trajectory import trajectory, trajectory_score
 from .verdict import SEVERITIES, GradeInput, Grader, Verdict, check_severity
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",
