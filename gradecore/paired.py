@@ -201,12 +201,17 @@ class RepeatedResult:
     detail: Sequence[TaskStability] = field(default_factory=tuple)
 
 
+DEFAULT_RATE_MARGIN = 0.5
+
+
 def repeated_compare(
     runs_a: Sequence[Mapping[str, float]],
     runs_b: Sequence[Mapping[str, float]],
     *,
     eps: float = DEFAULT_EPS,
     alpha: float = DEFAULT_ALPHA,
+    stability: str = "strict",
+    rate_margin: float = DEFAULT_RATE_MARGIN,
 ) -> RepeatedResult:
     """Compare two configs each measured several times.
 
@@ -218,7 +223,24 @@ def repeated_compare(
 
     Requires at least 2 repetitions on each side; with one run there is no way to
     observe self-consistency and the honest tool is ``paired_compare``.
+
+    ``stability`` picks the rule for "carries no direction":
+
+    - ``"strict"`` (default) — discard unless BOTH configs were perfectly
+      self-consistent. Never counts noise as signal. Its cost is measurable and
+      worth knowing: because every extra repetition is another chance to observe
+      disagreement, the discard count RISES with more repetitions. On one real
+      159-task pair: 2 reps discarded ~8.7 tasks, 3 reps discarded 13. In the limit
+      it throws away every genuinely stochastic task — which are exactly the tasks
+      carrying the most information about a noisy config. More measurement does not
+      fix this; only a different rule does.
+    - ``"rate"`` — count a task when the two pass RATES differ by at least
+      ``rate_margin``, self-consistent or not. Admits "A wins this most of the
+      time", which strict discards. Weaker on purpose: the margin is a judgement
+      call, not a test, so report which rule produced a number.
     """
+    if stability not in ("strict", "rate"):
+        raise ValueError('stability must be "strict" or "rate"')
     if len(runs_a) < 2 or len(runs_b) < 2:
         raise ValueError(
             "repeated_compare needs >= 2 repetitions per config; "
@@ -241,6 +263,13 @@ def repeated_compare(
         rate_a, rate_b = sum(va) / len(va), sum(vb) / len(vb)
         stable_a = max(va) - min(va) <= eps
         stable_b = max(vb) - min(vb) <= eps
+        if stability == "rate":
+            # A task counts when the two PASS RATES are far enough apart, whether
+            # or not either config was internally consistent. Deliberately weaker
+            # than "strict" and reported as such: the threshold is a judgement, not
+            # a test, and it admits tasks a config merely tends to win.
+            usable = abs(rate_a - rate_b) >= rate_margin or abs(rate_a - rate_b) <= eps
+            stable_a = stable_b = usable
 
         if not (stable_a and stable_b):
             unstable += 1

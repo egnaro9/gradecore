@@ -181,3 +181,52 @@ def test_noise_floor_counts_self_disagreement():
 def test_noise_floor_needs_repetitions():
     with pytest.raises(ValueError):
         noise_floor([{"t": 1.0}])
+
+
+# ---------------------------------------------------------------------------
+# stability="rate" — the cost of the strict rule, and the alternative
+# ---------------------------------------------------------------------------
+
+def test_strict_discards_a_task_one_config_merely_tends_to_win():
+    a = _runs({"t": 1.0}, {"t": 1.0}, {"t": 1.0})
+    b = _runs({"t": 0.0}, {"t": 0.0}, {"t": 1.0})   # b wins it 1 time in 3
+    assert repeated_compare(a, b).unstable == 1
+
+
+def test_rate_counts_it_when_the_gap_is_wide_enough():
+    a = _runs({"t": 1.0}, {"t": 1.0}, {"t": 1.0})
+    b = _runs({"t": 0.0}, {"t": 0.0}, {"t": 1.0})   # 1.00 vs 0.33 -> gap 0.67
+    r = repeated_compare(a, b, stability="rate")
+    assert r.unstable == 0 and r.wins == 1 and r.losses == 0
+
+
+def test_rate_still_discards_a_gap_below_the_margin():
+    # 1.00 vs 0.67 is a 0.33 gap: one config leans, and leaning is not a finding.
+    a = _runs({"t": 1.0}, {"t": 1.0}, {"t": 1.0})
+    b = _runs({"t": 1.0}, {"t": 1.0}, {"t": 0.0})
+    assert repeated_compare(a, b, stability="rate").unstable == 1
+
+
+def test_rate_keeps_genuine_ties():
+    # Both configs flaky in the same way is a tie, not a discard — it carries no
+    # direction for the same reason a clean tie doesn't.
+    a = _runs({"t": 1.0}, {"t": 0.0}, {"t": 1.0})
+    b = _runs({"t": 1.0}, {"t": 0.0}, {"t": 1.0})
+    r = repeated_compare(a, b, stability="rate")
+    assert r.ties == 1 and r.unstable == 0
+
+
+def test_more_repetitions_make_the_strict_rule_discard_MORE():
+    # The property that makes "just run it more times" the wrong remedy. Measured
+    # on real runs before it was written down here.
+    two = _runs({"t": 1.0}, {"t": 1.0})
+    three = _runs({"t": 1.0}, {"t": 1.0}, {"t": 0.0})
+    b2, b3 = _runs({"t": 0.0}, {"t": 0.0}), _runs({"t": 0.0}, {"t": 0.0}, {"t": 0.0})
+    assert repeated_compare(two, b2).unstable == 0
+    assert repeated_compare(three, b3).unstable == 1
+
+
+def test_an_unknown_stability_rule_is_rejected():
+    with pytest.raises(ValueError, match="stability"):
+        repeated_compare(_runs({"t": 1.0}, {"t": 1.0}), _runs({"t": 0.0}, {"t": 0.0}),
+                         stability="lenient")
