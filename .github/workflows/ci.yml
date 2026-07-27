@@ -18,4 +18,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
-      - run: pytest -q      # 14 tests, zero runtime dependencies
+      - run: pytest -q      # zero runtime dependencies, on purpose
+      # The paired-test arithmetic has a second implementation in never-touch-ai's
+      # harness_core.js. The tests pin the exact values that JS produces, so a
+      # divergence fails here rather than surfacing as two surfaces quietly
+      # disagreeing about what "better" means.
