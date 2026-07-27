@@ -37,6 +37,7 @@ from .paired import (
     DEFAULT_ALPHA,
     PairedResult,
     TaskDelta,
+    DEFAULT_RATE_MARGIN,
     noise_floor,
     paired_compare,
     paired_verdict,
@@ -63,6 +64,6 @@ __all__ = [
     "trajectory", "trajectory_score",
     # paired comparison between two scored runs
     "paired_compare", "paired_verdict", "sign_test_p", "tasks_needed", "last_line",
-    "repeated_compare", "repeated_verdict", "noise_floor",
+    "repeated_compare", "repeated_verdict", "noise_floor", "DEFAULT_RATE_MARGIN",
     "PairedResult", "TaskDelta", "DEFAULT_ALPHA",
 ]
