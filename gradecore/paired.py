@@ -156,3 +156,144 @@ def tasks_needed(alpha: float = DEFAULT_ALPHA) -> int:
         if n > 1000:  # pragma: no cover - alpha would have to be absurd
             raise ValueError(f"no practical n reaches alpha={alpha}")
     return n
+
+
+# ---------------------------------------------------------------------------
+# Repeated measures — the correction the noise floor forces
+# ---------------------------------------------------------------------------
+#
+# A single run per config cannot tell a real difference from a model disagreeing
+# with itself. Measured on a 41-task suite, claude-haiku-4-5 run three times
+# against ITSELF produced ~1.3 "informative" tasks per pairwise comparison. The
+# haiku-vs-sonnet comparison on the same suite produced 1. Read from single runs,
+# that difference is indistinguishable from noise.
+#
+# The fix is not a bigger suite. It is repeated measurement plus one rule:
+#
+#     a task where a config disagrees with ITSELF carries no direction,
+#     exactly like a tie, and must be discarded for the same reason.
+#
+# That rule is what separates the one real finding on that suite (haiku failed
+# extract-pro-regular-price 3/3 while sonnet passed) from the two tasks that
+# merely flickered.
+
+
+@dataclass(frozen=True)
+class TaskStability:
+    task: str
+    rate_a: float
+    rate_b: float
+    stable_a: bool
+    stable_b: bool
+    verdict: str   # "a", "b", "tie", or "unstable"
+
+
+@dataclass(frozen=True)
+class RepeatedResult:
+    reps_a: int
+    reps_b: int
+    shared: int
+    wins: int
+    losses: int
+    ties: int
+    unstable: int
+    paired: PairedResult
+    detail: Sequence[TaskStability] = field(default_factory=tuple)
+
+
+def repeated_compare(
+    runs_a: Sequence[Mapping[str, float]],
+    runs_b: Sequence[Mapping[str, float]],
+    *,
+    eps: float = DEFAULT_EPS,
+    alpha: float = DEFAULT_ALPHA,
+) -> RepeatedResult:
+    """Compare two configs each measured several times.
+
+    ``runs_a`` / ``runs_b`` are lists of ``{task_id: score}`` mappings, one per
+    repetition. A task counts as informative only if BOTH configs were
+    self-consistent across their own repetitions AND they disagree with each
+    other. Anything flickering within a config is dropped as unstable — reporting
+    it as a win would be reporting noise with a direction attached.
+
+    Requires at least 2 repetitions on each side; with one run there is no way to
+    observe self-consistency and the honest tool is ``paired_compare``.
+    """
+    if len(runs_a) < 2 or len(runs_b) < 2:
+        raise ValueError(
+            "repeated_compare needs >= 2 repetitions per config; "
+            "with a single run, use paired_compare and read min_p"
+        )
+
+    shared = sorted(
+        t for t in runs_a[0]
+        if all(t in r for r in runs_a) and all(t in r for r in runs_b)
+    )
+
+    detail = []
+    stable_a_scores: dict[str, float] = {}
+    stable_b_scores: dict[str, float] = {}
+    unstable = 0
+
+    for t in shared:
+        va = [r[t] for r in runs_a]
+        vb = [r[t] for r in runs_b]
+        rate_a, rate_b = sum(va) / len(va), sum(vb) / len(vb)
+        stable_a = max(va) - min(va) <= eps
+        stable_b = max(vb) - min(vb) <= eps
+
+        if not (stable_a and stable_b):
+            unstable += 1
+            verdict = "unstable"
+        else:
+            stable_a_scores[t] = rate_a
+            stable_b_scores[t] = rate_b
+            verdict = ("tie" if abs(rate_a - rate_b) <= eps
+                       else "a" if rate_a > rate_b else "b")
+        detail.append(TaskStability(t, rate_a, rate_b, stable_a, stable_b, verdict))
+
+    paired = paired_compare(stable_a_scores, stable_b_scores, eps=eps, alpha=alpha)
+    return RepeatedResult(
+        reps_a=len(runs_a),
+        reps_b=len(runs_b),
+        shared=len(shared),
+        wins=paired.wins,
+        losses=paired.losses,
+        ties=paired.ties,
+        unstable=unstable,
+        paired=paired,
+        detail=tuple(detail),
+    )
+
+
+def repeated_verdict(r: RepeatedResult, name_a: str = "A", name_b: str = "B") -> str:
+    """Plain-language reading that names the unstable tasks as their own category.
+
+    Folding unstable tasks into "tied" would hide the most actionable number in
+    the report: how much of the suite is measuring noise.
+    """
+    head = paired_verdict(r.paired, name_a, name_b)
+    if r.unstable == 0:
+        return f"{head} All {r.shared} tasks were self-consistent across repetitions."
+    s = "" if r.unstable == 1 else "s"
+    return (
+        f"{head} {r.unstable} of {r.shared} task{s} was discarded as unstable — "
+        f"a config disagreed with itself across repetitions, so the task carries "
+        f"no direction no matter which config 'won' it on any single run."
+    )
+
+
+def noise_floor(runs: Sequence[Mapping[str, float]], *, eps: float = DEFAULT_EPS) -> float:
+    """Mean informative-task count from comparing a config's repetitions to EACH OTHER.
+
+    This is the number any real finding has to clear. If a comparison between two
+    different configs yields no more informative tasks than a config compared with
+    itself, the "difference" is within the instrument's own variance.
+    """
+    if len(runs) < 2:
+        raise ValueError("noise_floor needs >= 2 repetitions")
+    counts = []
+    for i in range(len(runs)):
+        for j in range(i + 1, len(runs)):
+            counts.append(paired_compare(runs[i], runs[j], eps=eps).informative)
+    return sum(counts) / len(counts)

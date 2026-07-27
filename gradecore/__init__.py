@@ -36,15 +36,18 @@ from .paired import (
     DEFAULT_ALPHA,
     PairedResult,
     TaskDelta,
+    noise_floor,
     paired_compare,
     paired_verdict,
+    repeated_compare,
+    repeated_verdict,
     sign_test_p,
     tasks_needed,
 )
 from .trajectory import trajectory, trajectory_score
 from .verdict import SEVERITIES, GradeInput, Grader, Verdict, check_severity
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",
@@ -59,5 +62,6 @@ __all__ = [
     "trajectory", "trajectory_score",
     # paired comparison between two scored runs
     "paired_compare", "paired_verdict", "sign_test_p", "tasks_needed",
+    "repeated_compare", "repeated_verdict", "noise_floor",
     "PairedResult", "TaskDelta", "DEFAULT_ALPHA",
 ]

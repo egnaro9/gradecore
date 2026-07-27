@@ -113,3 +113,71 @@ def test_nothing_shared_is_not_a_tie():
     r = paired_compare({"a": 1.0}, {"b": 1.0})
     assert r.shared == 0
     assert "nothing to compare" in paired_verdict(r)
+
+
+# ---------------------------------------------------------------------------
+# repeated measures
+# ---------------------------------------------------------------------------
+
+from gradecore import noise_floor, repeated_compare, repeated_verdict  # noqa: E402
+
+
+def _runs(*per_rep):
+    """Each arg is a {task: score} mapping for one repetition."""
+    return list(per_rep)
+
+
+def test_a_task_a_config_flips_on_is_discarded_not_counted_as_a_win():
+    # The whole point. Config A scores 1,0,1 on t1 — it disagrees with itself.
+    # Reading any single run would hand t1 to whoever won that coin toss.
+    a = _runs({"t1": 1.0, "t2": 1.0}, {"t1": 0.0, "t2": 1.0}, {"t1": 1.0, "t2": 1.0})
+    b = _runs({"t1": 0.0, "t2": 0.0}, {"t1": 0.0, "t2": 0.0}, {"t1": 0.0, "t2": 0.0})
+    r = repeated_compare(a, b)
+    assert r.unstable == 1
+    assert r.wins == 1 and r.losses == 0      # only t2 survives
+    assert [d.verdict for d in r.detail if d.task == "t1"] == ["unstable"]
+
+
+def test_a_consistent_difference_survives():
+    a = _runs({"t": 1.0}, {"t": 1.0}, {"t": 1.0})
+    b = _runs({"t": 0.0}, {"t": 0.0}, {"t": 0.0})
+    r = repeated_compare(a, b)
+    assert r.unstable == 0 and r.wins == 1 and r.losses == 0
+
+
+def test_only_tasks_present_in_every_repetition_count():
+    # A task that crashed out of one rep tells you nothing, and treating the
+    # missing rep as a zero would invent a loss.
+    a = _runs({"t1": 1.0, "t2": 1.0}, {"t1": 1.0})
+    b = _runs({"t1": 0.0, "t2": 0.0}, {"t1": 0.0, "t2": 0.0})
+    r = repeated_compare(a, b)
+    assert r.shared == 1
+
+
+def test_one_repetition_is_refused_rather_than_guessed():
+    # With a single run there is no way to observe self-consistency. Silently
+    # treating it as stable is the error this whole module exists to prevent.
+    with pytest.raises(ValueError, match="paired_compare"):
+        repeated_compare([{"t": 1.0}], [{"t": 0.0}, {"t": 0.0}])
+
+
+def test_verdict_names_unstable_tasks_as_their_own_category():
+    a = _runs({"t1": 1.0}, {"t1": 0.0})
+    b = _runs({"t1": 0.0}, {"t1": 0.0})
+    text = repeated_verdict(repeated_compare(a, b), "haiku", "sonnet")
+    assert "unstable" in text
+    assert "disagreed with itself" in text
+
+
+def test_noise_floor_is_zero_for_a_perfectly_stable_config():
+    assert noise_floor([{"t": 1.0}, {"t": 1.0}, {"t": 1.0}]) == 0.0
+
+
+def test_noise_floor_counts_self_disagreement():
+    # t flips in one of three reps: informative in 2 of the 3 pairings.
+    assert noise_floor([{"t": 1.0}, {"t": 0.0}, {"t": 1.0}]) == pytest.approx(2 / 3)
+
+
+def test_noise_floor_needs_repetitions():
+    with pytest.raises(ValueError):
+        noise_floor([{"t": 1.0}])
