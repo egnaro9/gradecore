@@ -45,7 +45,7 @@ empty-gold / empty-answer gotchas corrected) and the net-new adversarial graders
 (injection-resistance, tool-misuse, spec/format-violation, refusal-calibration).
 
 ```bash
-pip install -e ".[dev]" && pytest -q        # 14 tests, zero dependencies
+pip install -e ".[dev]" && pytest -q        # 84 tests, zero dependencies
 ```
 
 MIT · by [Erik Hill](https://egnaro9.github.io)
