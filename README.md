@@ -44,9 +44,13 @@ Verdict(passed: bool, score: float, severity: str, detail: str, grader_id: str)
   silently-edited suite is detectable and two runs are only comparable if they
   answered the same questions.
 
-**Coming** (crash-test Phase 1): the retrieval/grounding family (with the
-empty-gold / empty-answer gotchas corrected) and the net-new adversarial graders
-(injection-resistance, tool-misuse, spec/format-violation, refusal-calibration).
+- **Retrieval/grounding family** (`grounding.py`) — with the empty-gold /
+  empty-answer gotchas corrected.
+- **Adversarial graders** (`adversarial.py`) — injection-resistance, tool-misuse,
+  spec/format-violation, refusal-calibration. Shipped with crash-test Phase 1.
+- **Trajectory scoring** (`trajectory.py`) and **paired comparison stats**
+  (`paired.py`) — the sign-test/permutation machinery that refuses underpowered
+  verdicts.
 
 ```bash
 pip install -e ".[dev]" && pytest -q        # 84 tests, zero dependencies
