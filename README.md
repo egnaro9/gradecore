@@ -16,7 +16,7 @@ contains("signal", "process")(GradeInput(text="signal a process"))   # both need
 number(3.14, tol=0.01)(GradeInput(text="about 3.141"))               # extracts + tolerance-compares
 ```
 
-<img src="docs/demo.gif" alt="A paired comparison declining to name a winner because only four tasks separate the two variants" width="100%">
+<img src="https://raw.githubusercontent.com/egnaro9/gradecore/main/docs/demo.gif" alt="A paired comparison declining to name a winner because only four tasks separate the two variants" width="100%">
 
 *Eight tasks, two prompt variants, four disagreements. Four cannot clear p<0.05 even under a clean sweep, so the suite reports that it cannot decide rather than naming a winner: `python3 -m demos.underpowered`. [Play it as a terminal session](https://asciinema.org/a/GnfWEFk2DzH8QJyn) — the text is selectable.*
 
