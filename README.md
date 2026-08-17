@@ -1,8 +1,16 @@
 # gradecore
 
-**One deterministic, no-LLM-judge grading engine**: shared by
-[model-drift](https://github.com/egnaro9/model-drift) (longitudinal monitoring)
-and the crash-test platform (on-demand adversarial testing). Zero dependencies.
+**One deterministic, no-LLM-judge grading engine**, used by the crash-test
+platform (on-demand adversarial testing) and *wire-compatible* with
+[model-drift](https://github.com/egnaro9/model-drift) (longitudinal monitoring).
+Zero dependencies.
+
+On that compatibility, precisely: model-drift does **not** import gradecore, and
+declares no dependency on it. What is verified is that the two agree, which is
+the claim worth making and the one that can be checked: both compute the same
+`suite_hash` (`e76f17b6c56e`) over model-drift's suite, and all 35 of its graders
+lift through `bool_grader` with 0 of 175 verdicts differing. "Shared by" was the
+older wording here and it was false in code.
 
 Every grade is a pure predicate over a string, so it reproduces exactly. The
 property a drift board and a vulnerability score both depend on. No second model
