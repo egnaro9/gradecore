@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gradecore"
 version = "0.10.0"
-description = "A deterministic, no-LLM-judge grading engine shared by model-drift and the crash-test platform"
+description = "A deterministic, no-LLM-judge grading engine used by the crash-test platform and wire-compatible with model-drift"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
