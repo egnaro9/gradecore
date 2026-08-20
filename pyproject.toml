@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gradecore"
-version = "0.10.0"
+version = "0.10.1"
 description = "A deterministic, no-LLM-judge grading engine used by the crash-test platform and wire-compatible with model-drift"
 readme = "README.md"
 requires-python = ">=3.11"
