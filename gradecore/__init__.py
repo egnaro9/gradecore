@@ -49,7 +49,19 @@ from .paired import (
 from .trajectory import trajectory, trajectory_score
 from .verdict import SEVERITIES, GradeInput, Grader, Verdict, check_severity
 
-__version__ = "0.10.0"
+# ONE authoritative source, read from the installed distribution rather than kept in step by
+# hand. 0.10.1 shipped with this literal still reading "0.10.0": the wheel's METADATA said
+# 0.10.1 and gradecore.__version__ said 0.10.0, so anything logging or pinning by the module
+# attribute identified the wrong release. A provenance library cannot misreport its own version.
+# importlib.metadata is stdlib, so this costs the zero-dependency guarantee nothing. The literal
+# below is reached only when running from a source tree with nothing installed, and a test
+# asserts the two agree whenever the package IS installed.
+try:  # pragma: no cover - exercised by the packaging test, not the unit suite
+    from importlib.metadata import PackageNotFoundError as _NotFound, version as _dist_version
+
+    __version__ = _dist_version("gradecore")
+except Exception:  # not installed: a source-tree run
+    __version__ = "0.10.2"
 
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",
