@@ -6,3 +6,4 @@ venv/
 *.egg-info/
 .coverage
 build/
+dist/
