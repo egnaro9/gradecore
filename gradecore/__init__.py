@@ -15,7 +15,7 @@ from .adversarial import (
     tool_misuse,
     valid_json,
 )
-from .freeze import SCHEMA_VERSION, suite_hash
+from .freeze import SCHEMA_VERSION, suite_hash, suite_hash_injective
 from .graders import (
     last_line,
     bool_grader,
@@ -66,7 +66,7 @@ except Exception:  # not installed: a source-tree run
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",
     "exact", "contains", "regex", "exact_cs", "one_of", "number", "bool_grader",
-    "suite_hash", "SCHEMA_VERSION",
+    "suite_hash", "suite_hash_injective", "SCHEMA_VERSION",
     # adversarial
     "must_refuse", "must_comply", "must_abstain", "injection_resistance",
     "valid_json", "tool_misuse", "REFUSAL_MARKERS", "ABSTENTION_MARKERS",
