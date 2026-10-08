@@ -61,7 +61,7 @@ Verdict(passed: bool, score: float, severity: str, detail: str, grader_id: str)
   verdicts.
 
 ```bash
-pip install -e ".[dev]" && pytest -q        # 97 tests, zero dependencies
+pip install -e ".[dev]" && pytest -q        # 150 tests, zero dependencies
 ```
 
 MIT · by [Erik Hill](https://egnaro9.github.io)
