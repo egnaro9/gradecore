@@ -19,6 +19,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
       - run: pytest -q      # zero runtime dependencies, on purpose
+      - name: README's advertised test count must match the suite
+        run: python scripts/check_readme_test_count.py
       # The paired-test arithmetic has a second implementation in never-touch-ai's
       # harness_core.js. The tests pin the exact values that JS produces, so a
       # divergence fails here rather than surfacing as two surfaces quietly
