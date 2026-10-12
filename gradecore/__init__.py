@@ -61,7 +61,7 @@ try:  # pragma: no cover - exercised by the packaging test, not the unit suite
 
     __version__ = _dist_version("gradecore")
 except Exception:  # not installed: a source-tree run
-    __version__ = "0.10.2"
+    __version__ = "0.10.3"
 
 __all__ = [
     "GradeInput", "Verdict", "Grader", "SEVERITIES", "check_severity",
