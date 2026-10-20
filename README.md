@@ -6,11 +6,13 @@ platform (on-demand adversarial testing) and *wire-compatible* with
 Zero dependencies.
 
 On that compatibility, precisely: model-drift does **not** import gradecore, and
-declares no dependency on it. What is verified is that the two agree, which is
-the claim worth making and the one that can be checked: both compute the same
-`suite_hash` (`e76f17b6c56e`) over model-drift's suite, and all 35 of its graders
-lift through `bool_grader` with 0 of 175 verdicts differing. "Shared by" was the
-older wording here and it was false in code.
+declares no dependency on it. What can be checked is that the two agree on the
+suite: both compute the same `suite_hash` (`e76f17b6c56e`) over model-drift's
+35-task suite. Its 35 graders lift through `bool_grader` unchanged, and because
+`bool_grader` calls model-drift's own predicate, a lifted verdict matches the
+original by construction: that shows the extraction kept the verdicts, not that
+two separate engines agree. "Shared by" was the older wording here and it was
+false in code.
 
 Every grade is a pure predicate over a string, so it reproduces exactly. The
 property a drift board and a vulnerability score both depend on. No second model
